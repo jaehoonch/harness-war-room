@@ -17,7 +17,7 @@ class SandboxResult:
     output: str
 
 
-def run_tests(repo_dir: str, timeout: int = 30) -> SandboxResult:
+def run_tests(repo_dir: str, timeout: int = 30, test_path: str | None = None) -> SandboxResult:
     work = tempfile.mkdtemp(prefix="warroom-")
     dest = os.path.join(work, "repo")
     shutil.copytree(repo_dir, dest)
@@ -28,9 +28,12 @@ def run_tests(repo_dir: str, timeout: int = 30) -> SandboxResult:
         "HTTP_PROXY": "http://127.0.0.1:0",
         "HTTPS_PROXY": "http://127.0.0.1:0",
     }
+    cmd = [sys.executable, "-m", "pytest", "-q"]
+    if test_path:
+        cmd.append(test_path)
     try:
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q"],
+            cmd,
             cwd=dest,
             env=env,
             capture_output=True,

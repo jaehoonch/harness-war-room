@@ -4,10 +4,10 @@ ROLES = ["triage", "repro", "fix", "review"]
 
 _MODELS = {"triage": "gpt-4o-mini", "repro": "gpt-4o-mini", "fix": "gpt-4o-mini", "review": "gpt-4o"}
 _PROMPTS = {
-    "triage": "Classify the ask and name the file(s) to change.",
-    "repro": "Write a failing pytest reproducing the bug.",
-    "fix": "Produce the minimal patched source to make tests pass.",
-    "review": "Verdict PASS/FAIL and any guardrail concerns on the diff.",
+    "triage": "A ServiceNow incident describes a billing bug. Reply with only the single Python filename to change.",
+    "repro": "Write/identify the failing pytest that reproduces the incident.",
+    "fix": "Produce the minimal patched source file to make tests pass.",
+    "review": "Given pytest output, reply PASS or FAIL with any guardrail concerns.",
 }
 
 

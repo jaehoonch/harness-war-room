@@ -20,5 +20,5 @@ def test_fixed_repo_passes(tmp_path):
     (src / "order_service.py").write_text(
         "def apply_discount(price, pct):\n    return round(price * (1 - pct), 2)\n"
     )
-    result = run_tests(str(src))
+    result = run_tests(str(src), test_path="test_order_service.py")
     assert result.passed is True

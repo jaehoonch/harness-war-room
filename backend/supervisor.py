@@ -18,19 +18,21 @@ def run_war_room(ask, repo_dir, agents=None, max_loops=3):
 
         agents = {r: make_agent(r) for r in ("triage", "repro", "fix", "review")}
 
-    target = os.path.join(repo_dir, agents["triage"].run(ask).strip() or "order_service.py")
-    yield _event("step", "triage", os.path.basename(target))
+    target_name = agents["triage"].run(ask).strip() or "order_service.py"
+    target = os.path.join(repo_dir, target_name)
+    test_path = "test_" + target_name
+    yield _event("step", "triage", target_name, file=target_name)
     yield _event("step", "repro", agents["repro"].run(ask))
 
     passed = False
-    for _ in range(max_loops):
+    for loop in range(1, max_loops + 1):
         patch = agents["fix"].run(ask)
         with open(target, "w") as fh:
             fh.write(patch)
-        yield _event("step", "fix", patch)
-        result = run_tests(repo_dir)
+        yield _event("step", "fix", patch, loop=loop, diff=patch)
+        result = run_tests(repo_dir, test_path=test_path)
         verdict = agents["review"].run(result.output)
-        yield _event("step", "review", verdict, passed=result.passed)
+        yield _event("step", "review", verdict, passed=result.passed, loop=loop, output=result.output)
         if result.passed:
             passed = True
             break

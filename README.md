@@ -1,6 +1,6 @@
 # ⚡ Harness War Room
 
-Multi-agent app where **Triage → Repro → Fix → Review** agents collaborate live to turn a customer ask into a real code diff backed by a passing test — the harness loop running visibly on screen.
+Multi-agent app where **Triage → Repro → Fix → Review** agents pick up a **ServiceNow incident** and collaborate live to turn it into a real code diff backed by a passing test — the harness loop running visibly on screen. Tickets are a mocked ServiceNow queue (3 billing bugs); the P1 incident takes two Fix→Review loops to go green.
 
 **Live:** https://warroom.jollymoss-1476338c.koreacentral.azurecontainerapps.io
 **Repo:** github.com/jaehoonch/harness-war-room · **CI/CD:** Azure DevOps (`jaehoonchung/harness-war-room`) → ACR → Azure Container Apps (`rg-harness-war-room`, koreacentral).
@@ -26,7 +26,8 @@ pytest backend/tests -q
 
 - **Supervisor** (code) enforces test-gated handoffs, re-loops Fix→Review until green.
 - **Agents** (Microsoft Agent Framework, Azure AI Foundry): gpt-4o-mini workers, gpt-4o reviewer.
-- **Sandbox**: no-network copy-on-run subprocess pytest.
+- **Tickets**: mocked ServiceNow incident queue (`/api/tickets`) drives the run.
+- **Sandbox**: no-network copy-on-run subprocess pytest, scoped to the ticket's test.
 - **AG-UI** events streamed over SSE; vanilla JS timeline + chat.
 - **Deploy**: GitHub → Azure DevOps → ACR → Azure Container Apps.
 

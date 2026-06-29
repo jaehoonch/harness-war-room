@@ -5,53 +5,71 @@
 <title>Harness War Room</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin:0; font:15px/1.5 system-ui,sans-serif; background:#0b0d12; color:#e6e9ef; }
-  header { padding:18px 24px; border-bottom:1px solid #1d2230; }
-  h1 { margin:0; font-size:18px; letter-spacing:.5px; }
-  .grid { display:grid; grid-template-columns:1fr 360px; gap:0; height:calc(100vh - 61px); }
-  .room { padding:24px; overflow:auto; }
-  .agent { display:flex; gap:14px; margin:14px 0; opacity:.35; transition:.3s; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.5 system-ui,sans-serif; background:#0b0d12; color:#e6e9ef; }
+  header { padding:16px 24px; border-bottom:1px solid #1d2230; display:flex; align-items:center; gap:12px; }
+  h1 { margin:0; font-size:17px; letter-spacing:.3px; }
+  .tag { font-size:11px; color:#9aa3b4; border:1px solid #1d2230; padding:2px 8px; border-radius:99px; }
+  .grid { display:grid; grid-template-columns:300px 1fr 380px; height:calc(100vh - 57px); }
+  /* ServiceNow queue */
+  .queue { border-right:1px solid #1d2230; overflow:auto; }
+  .qhead { padding:12px 16px; font-size:12px; color:#9aa3b4; text-transform:uppercase; letter-spacing:.6px; }
+  .tk { padding:12px 16px; border-bottom:1px solid #141823; cursor:pointer; }
+  .tk:hover { background:#11141c; } .tk.sel { background:#141a2b; border-left:3px solid #5b8cff; }
+  .tk .num { font-weight:700; color:#7aa2ff; } .tk .sd { margin:4px 0; }
+  .tk .meta { font-size:12px; color:#9aa3b4; }
+  .p1{color:#ff6b6b} .p2{color:#ffb454} .p3{color:#3ddc84}
+  /* room */
+  .room { padding:22px; overflow:auto; }
+  .agent { display:flex; gap:14px; margin:12px 0; opacity:.3; transition:.3s; }
   .agent.active { opacity:1; }
-  .dot { width:34px; height:34px; border-radius:50%; background:#1d2230; display:grid; place-items:center; }
-  .agent.active .dot { background:#5b8cff; }
+  .dot { width:32px; height:32px; border-radius:50%; background:#1d2230; display:grid; place-items:center; flex:none; }
+  .agent.active .dot { background:#5b8cff; } .agent.done .dot{background:#3ddc84}
   .role { font-weight:600; text-transform:capitalize; }
   .content { color:#9aa3b4; white-space:pre-wrap; }
-  .badge { margin-top:16px; font-weight:700; }
+  .loops { font-size:12px; color:#9aa3b4; margin:8px 0 0; }
+  .badge { margin-top:18px; font-weight:700; font-size:16px; }
   .pass { color:#3ddc84; } .fail { color:#ff6b6b; }
-  aside { border-left:1px solid #1d2230; display:flex; flex-direction:column; }
-  .chat { flex:1; padding:16px; overflow:auto; }
-  .msg { margin:8px 0; } .msg b { color:#5b8cff; }
+  /* evidence */
+  aside { border-left:1px solid #1d2230; display:flex; flex-direction:column; min-width:0; }
+  .ev { padding:14px 16px; overflow:auto; flex:1; }
+  .ev h3 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#9aa3b4; margin:14px 0 6px; }
+  pre { margin:0; padding:10px; background:#11141c; border:1px solid #1d2230; border-radius:8px; white-space:pre-wrap; font:12px/1.5 ui-monospace,monospace; }
+  .diff .add{color:#3ddc84} .diff .del{color:#ff6b6b}
   .bar { display:flex; padding:12px; border-top:1px solid #1d2230; gap:8px; }
-  input { flex:1; padding:10px; background:#11141c; border:1px solid #1d2230; color:#fff; border-radius:8px; }
   button { padding:10px 16px; background:#5b8cff; border:0; color:#fff; border-radius:8px; cursor:pointer; }
+  button:disabled{opacity:.5;cursor:default}
 </style>
 </head>
 <body>
-<header><h1>⚡ Harness War Room — agents fix the bug, you watch</h1></header>
+<header><h1>⚡ Harness War Room</h1><span class="tag">ServiceNow → 4 agents → green tests → ship</span></header>
 <div class="grid">
+  <section class="queue"><div class="qhead">ServiceNow · Incident queue</div><div id="queue"></div></section>
   <section class="room" id="room"></section>
-  <aside>
-    <div class="chat" id="chat"></div>
-    <div class="bar">
-      <input id="ask" value="Discount rounding is wrong: 99.99 at 10% should be 89.99" />
-      <button onclick="run()">Run</button>
-    </div>
-  </aside>
+  <aside><div class="ev" id="ev"><h3>Evidence</h3><div id="evbody" style="color:#9aa3b4">Pick a ticket to dispatch the agents.</div></div>
+    <div class="bar"><button id="go" onclick="run()" disabled>Dispatch agents</button></div></aside>
 </div>
 <script>
 const roles = ["triage","repro","fix","review"];
 const room = document.getElementById("room");
-function render(){ room.innerHTML = roles.map(r=>`<div class="agent" id="a-${r}"><div class="dot">🤖</div><div><div class="role">${r}</div><div class="content" id="c-${r}"></div></div></div>`).join("") + `<div class="badge" id="badge"></div>`; }
-render();
-function run(){
-  render(); const chat=document.getElementById("chat");
-  const ask=document.getElementById("ask").value;
-  const es=new EventSource("/api/run?ask="+encodeURIComponent(ask));
-  es.onmessage=e=>{ const ev=JSON.parse(e.data);
-    if(ev.type==="TEXT_MESSAGE"){ const a=document.getElementById("a-"+ev.role); if(a)a.classList.add("active"); const c=document.getElementById("c-"+ev.role); if(c)c.textContent=ev.content; chat.innerHTML+=`<div class="msg"><b>${ev.role}</b>: ${ev.content}</div>`; chat.scrollTop=chat.scrollHeight; }
-    if(ev.type==="RUN_FINISHED"){ const b=document.getElementById("badge"); b.textContent=ev.passed?"✅ tests green — fix shipped":"❌ failed"; b.className="badge "+(ev.passed?"pass":"fail"); es.close(); }
+let sel = null, tickets = [];
+function renderRoom(){ room.innerHTML = roles.map(r=>`<div class="agent" id="a-${r}"><div class="dot">🤖</div><div><div class="role">${r}</div><div class="content" id="c-${r}"></div></div></div>`).join("") + `<div class="loops" id="loops"></div><div class="badge" id="badge"></div>`; }
+renderRoom();
+async function load(){ tickets = await (await fetch("/api/tickets")).json();
+  document.getElementById("queue").innerHTML = tickets.map(t=>{const p=t.priority[0];return `<div class="tk" id="t-${t.number}" onclick="pick('${t.number}')"><div class="num">${t.number}</div><div class="sd">${t.short_description}</div><div class="meta p${p}">${t.priority} · ${t.caller}</div></div>`;}).join(""); }
+function pick(n){ sel=n; document.querySelectorAll('.tk').forEach(e=>e.classList.remove('sel')); document.getElementById('t-'+n).classList.add('sel'); document.getElementById('go').disabled=false; renderRoom(); document.getElementById('evbody').innerHTML='Ready: '+n; }
+function run(){ if(!sel) return; renderRoom(); document.getElementById('go').disabled=true;
+  const ev=document.getElementById('evbody'), loops=document.getElementById('loops'); let n=0;
+  const es=new EventSource("/api/run?ticket="+encodeURIComponent(sel));
+  es.onmessage=e=>{ const m=JSON.parse(e.data);
+    if(m.type==="TEXT_MESSAGE"){ const a=document.getElementById("a-"+m.role); if(a){a.classList.add("active");a.classList.add("done");} const c=document.getElementById("c-"+m.role); if(c)c.textContent=m.content;
+      if(m.loop) loops.textContent="Loop "+m.loop;
+      let h=""; if(m.diff){h+='<h3>Diff</h3><pre class="diff">'+m.diff.split('\n').map(l=>l[0]==='+'?'<span class=add>'+esc(l)+'</span>':l[0]==='-'?'<span class=del>'+esc(l)+'</span>':esc(l)).join('\n')+'</pre>';} if(m.output){h+='<h3>pytest</h3><pre>'+esc(m.output)+'</pre>';} if(h)ev.innerHTML=h; }
+    if(m.type==="RUN_FINISHED"){ const b=document.getElementById("badge"); b.textContent=m.passed?"✅ "+m.content:"❌ "+m.content; b.className="badge "+(m.passed?"pass":"fail"); document.getElementById('go').disabled=false; es.close(); }
   };
 }
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+load();
 </script>
 </body>
 </html>
