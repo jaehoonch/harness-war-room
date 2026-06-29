@@ -72,6 +72,18 @@ flowchart TB
   ado["Azure DevOps pipeline"] -->|az acr build| acr
   ado -->|containerapp update| aca
   ado -->|func publish| fn
+
+  classDef compute fill:#0078d4,stroke:#004578,color:#fff
+  classDef data fill:#107c10,stroke:#0b4f0b,color:#fff
+  classDef ai fill:#8661c5,stroke:#52308a,color:#fff
+  classDef cicd fill:#d83b01,stroke:#8a2600,color:#fff
+  classDef actor fill:#605e5c,stroke:#323130,color:#fff
+
+  class warroom,shop,fn compute
+  class sa,acr,law data
+  class foundry ai
+  class ado cicd
+  class user actor
 ```
 
 | Azure resource | Role |
