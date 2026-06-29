@@ -1,0 +1,51 @@
+# Push to GitHub -> Azure DevOps builds, tests, pushes to ACR, deploys to ACA.
+trigger:
+  branches:
+    include: [main]
+
+variables:
+  acr: $(ACR_NAME)                 # e.g. warroomacr
+  image: harness-war-room
+  rg: $(RESOURCE_GROUP)            # e.g. rg-harness-war-room
+  app: warroom
+  azureSubscription: $(AZURE_SERVICE_CONNECTION)
+
+stages:
+  - stage: Test
+    jobs:
+      - job: pytest
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: '3.11' }
+          - script: pip install -r requirements.txt && pytest backend/tests -q
+            displayName: Run tests
+
+  - stage: BuildPush
+    dependsOn: Test
+    jobs:
+      - job: image
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az acr build --registry $(acr) --image $(image):$(Build.BuildId) .
+
+  - stage: Deploy
+    dependsOn: BuildPush
+    jobs:
+      - job: aca
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az containerapp update -n $(app) -g $(rg) \
+                  --image $(acr).azurecr.io/$(image):$(Build.BuildId)
