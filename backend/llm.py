@@ -22,5 +22,20 @@ class AzureClient:
         return resp.choices[0].message.content or ""
 
 
+class FoundryAgentClient:
+    """Microsoft Agent Framework agent over an Azure AI Foundry model."""
+
+    def complete(self, model: str, system: str, user: str) -> str:
+        from agent_framework.azure import AzureAIAgentClient
+
+        agent = AzureAIAgentClient(
+            endpoint=os.environ["AZURE_AI_FOUNDRY_ENDPOINT"],
+            model_deployment=model,
+        ).create_agent(instructions=system)
+        return str(agent.run(user))
+
+
 def default_client():
+    if os.environ.get("USE_FOUNDRY_AGENT") == "1":
+        return FoundryAgentClient()
     return AzureClient()
