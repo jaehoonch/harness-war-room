@@ -2,6 +2,9 @@
 
 Multi-agent app where **Triage → Repro → Fix → Review** agents collaborate live to turn a customer ask into a real code diff backed by a passing test — the harness loop running visibly on screen.
 
+**Live:** https://warroom.jollymoss-1476338c.koreacentral.azurecontainerapps.io
+**Repo:** github.com/jaehoonch/harness-war-room · **CI/CD:** Azure DevOps (`jaehoonchung/harness-war-room`) → ACR → Azure Container Apps (`rg-harness-war-room`, koreacentral).
+
 ## Run locally
 
 ```bash

@@ -4,11 +4,11 @@ trigger:
     include: [main]
 
 variables:
-  acr: $(ACR_NAME)                 # e.g. warroomacr
+  acr: warroomacryus4r3t5b66pu
   image: harness-war-room
-  rg: $(RESOURCE_GROUP)            # e.g. rg-harness-war-room
+  rg: rg-harness-war-room
   app: warroom
-  azureSubscription: $(AZURE_SERVICE_CONNECTION)
+  azureSubscription: warroom-azure
 
 stages:
   - stage: Test
