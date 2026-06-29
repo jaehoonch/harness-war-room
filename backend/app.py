@@ -7,10 +7,12 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from agui import to_agui
 
 DEMO = Path(__file__).resolve().parents[1] / "demo_repo"
+FRONTEND = Path(__file__).resolve().parents[1] / "frontend"
 app = FastAPI()
 
 
@@ -38,3 +40,6 @@ def run(ask: str):
             yield f"data: {json.dumps(ev)}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
+
+
+app.mount("/", StaticFiles(directory=str(FRONTEND), html=True), name="ui")

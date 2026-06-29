@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Harness War Room</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font:15px/1.5 system-ui,sans-serif; background:#0b0d12; color:#e6e9ef; }
+  header { padding:18px 24px; border-bottom:1px solid #1d2230; }
+  h1 { margin:0; font-size:18px; letter-spacing:.5px; }
+  .grid { display:grid; grid-template-columns:1fr 360px; gap:0; height:calc(100vh - 61px); }
+  .room { padding:24px; overflow:auto; }
+  .agent { display:flex; gap:14px; margin:14px 0; opacity:.35; transition:.3s; }
+  .agent.active { opacity:1; }
+  .dot { width:34px; height:34px; border-radius:50%; background:#1d2230; display:grid; place-items:center; }
+  .agent.active .dot { background:#5b8cff; }
+  .role { font-weight:600; text-transform:capitalize; }
+  .content { color:#9aa3b4; white-space:pre-wrap; }
+  .badge { margin-top:16px; font-weight:700; }
+  .pass { color:#3ddc84; } .fail { color:#ff6b6b; }
+  aside { border-left:1px solid #1d2230; display:flex; flex-direction:column; }
+  .chat { flex:1; padding:16px; overflow:auto; }
+  .msg { margin:8px 0; } .msg b { color:#5b8cff; }
+  .bar { display:flex; padding:12px; border-top:1px solid #1d2230; gap:8px; }
+  input { flex:1; padding:10px; background:#11141c; border:1px solid #1d2230; color:#fff; border-radius:8px; }
+  button { padding:10px 16px; background:#5b8cff; border:0; color:#fff; border-radius:8px; cursor:pointer; }
+</style>
+</head>
+<body>
+<header><h1>⚡ Harness War Room — agents fix the bug, you watch</h1></header>
+<div class="grid">
+  <section class="room" id="room"></section>
+  <aside>
+    <div class="chat" id="chat"></div>
+    <div class="bar">
+      <input id="ask" value="Discount rounding is wrong: 99.99 at 10% should be 89.99" />
+      <button onclick="run()">Run</button>
+    </div>
+  </aside>
+</div>
+<script>
+const roles = ["triage","repro","fix","review"];
+const room = document.getElementById("room");
+function render(){ room.innerHTML = roles.map(r=>`<div class="agent" id="a-${r}"><div class="dot">🤖</div><div><div class="role">${r}</div><div class="content" id="c-${r}"></div></div></div>`).join("") + `<div class="badge" id="badge"></div>`; }
+render();
+function run(){
+  render(); const chat=document.getElementById("chat");
+  const ask=document.getElementById("ask").value;
+  const es=new EventSource("/api/run?ask="+encodeURIComponent(ask));
+  es.onmessage=e=>{ const ev=JSON.parse(e.data);
+    if(ev.type==="TEXT_MESSAGE"){ const a=document.getElementById("a-"+ev.role); if(a)a.classList.add("active"); const c=document.getElementById("c-"+ev.role); if(c)c.textContent=ev.content; chat.innerHTML+=`<div class="msg"><b>${ev.role}</b>: ${ev.content}</div>`; chat.scrollTop=chat.scrollHeight; }
+    if(ev.type==="RUN_FINISHED"){ const b=document.getElementById("badge"); b.textContent=ev.passed?"✅ tests green — fix shipped":"❌ failed"; b.className="badge "+(ev.passed?"pass":"fail"); es.close(); }
+  };
+}
+</script>
+</body>
+</html>
