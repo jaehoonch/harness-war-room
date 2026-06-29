@@ -10,11 +10,11 @@ class FakeClient:
         return f"{model}:{user[:5]}"
 
 
-def test_workers_use_mini_reviewer_uses_4o():
-    assert make_agent("triage").model == "gpt-4o-mini"
-    assert make_agent("repro").model == "gpt-4o-mini"
-    assert make_agent("fix").model == "gpt-4o-mini"
-    assert make_agent("review").model == "gpt-4o"
+def test_agents_use_gpt_41():
+    assert make_agent("triage").model == "gpt-4.1"
+    assert make_agent("repro").model == "gpt-4.1"
+    assert make_agent("fix").model == "gpt-4.1"
+    assert make_agent("review").model == "gpt-4.1"
 
 
 def test_all_roles_present():
@@ -24,5 +24,5 @@ def test_all_roles_present():
 def test_agent_runs_via_client():
     client = FakeClient()
     out = make_agent("fix", client=client).run("fix the bug")
-    assert out.startswith("gpt-4o-mini:")
-    assert client.calls[0][0] == "gpt-4o-mini"
+    assert out.startswith("gpt-4.1:")
+    assert client.calls[0][0] == "gpt-4.1"
