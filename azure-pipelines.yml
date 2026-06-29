@@ -75,4 +75,4 @@ stages:
               scriptLocation: inlineScript
               inlineScript: |
                 cd durable
-                func azure functionapp publish warroom-fn --python --build remote
+                func azure functionapp publish warroom-fn --python
