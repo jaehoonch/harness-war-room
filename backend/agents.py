@@ -2,7 +2,7 @@
 
 ROLES = ["triage", "repro", "fix", "review"]
 
-_MODELS = {"triage": "gpt-4o-mini", "repro": "gpt-4o-mini", "fix": "gpt-4o-mini", "review": "gpt-4o"}
+_MODELS = {"triage": "gpt-4.1", "repro": "gpt-4.1", "fix": "gpt-4.1", "review": "gpt-4.1"}
 _PROMPTS = {
     "triage": "A ServiceNow incident describes a billing bug. Reply with only the single Python filename to change.",
     "repro": "Write/identify the failing pytest that reproduces the incident.",

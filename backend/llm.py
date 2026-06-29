@@ -10,11 +10,20 @@ class AzureClient:
     def complete(self, model: str, system: str, user: str) -> str:
         from openai import AzureOpenAI
 
-        client = AzureOpenAI(
-            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-            api_key=os.environ["AZURE_OPENAI_API_KEY"],
-            api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview"),
-        )
+        endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
+        version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
+        key = os.environ.get("AZURE_OPENAI_API_KEY")
+        if key:
+            client = AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=version)
+        else:
+            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+            token = get_bearer_token_provider(
+                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+            client = AzureOpenAI(
+                azure_endpoint=endpoint, azure_ad_token_provider=token, api_version=version
+            )
         resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],

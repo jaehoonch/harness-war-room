@@ -5,4 +5,5 @@ pytest>=8.0
 ag-ui-protocol>=0.1
 agent-framework>=0.1
 openai>=1.40
+azure-identity>=1.17
 opentelemetry-sdk>=1.25

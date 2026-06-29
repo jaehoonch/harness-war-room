@@ -54,3 +54,25 @@ stages:
                   --image $(acr).azurecr.io/$(image):$(Build.BuildId)
                 az containerapp update -n $(shop) -g $(rg) \
                   --image $(acr).azurecr.io/$(shopImage):$(Build.BuildId)
+
+  - stage: Durable
+    dependsOn: Deploy
+    jobs:
+      - job: publish
+        pool: { vmImage: ubuntu-latest }
+        steps:
+          - task: UsePythonVersion@0
+            inputs: { versionSpec: '3.11' }
+          - script: |
+              cp -r backend durable/backend
+              cp -r demo_repo durable/demo_repo
+              npm i -g azure-functions-core-tools@4 --unsafe-perm true
+            displayName: Stage durable package
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: $(azureSubscription)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                cd durable
+                func azure functionapp publish warroom-fn --python --build remote

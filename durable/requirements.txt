@@ -1,5 +1,6 @@
 azure-functions
 azure-functions-durable>=1.2
 openai>=1.40
+azure-identity>=1.17
 agent-framework>=0.1
 pytest>=8.0
