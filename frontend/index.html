@@ -67,7 +67,7 @@ function renderDetail(t){
   const acts = t.activity.map(a=>`<div class="a"><b>${a.who}</b><span class="t">${a.at}</span><br>${esc(a.note)}</div>`).join("");
   room.innerHTML = `<div class="detail"><div class="num">${t.number} · ${t.priority}</div><p><b>${esc(t.short_description)}</b></p><p>${esc(t.description)}</p>`+
     `<div class="meta">${t.assignment_group} · opened ${t.opened} · ${t.file}</div><h3 style="font-size:12px;color:#9aa3b4;margin:14px 0 4px">Activity</h3><div class="act">${acts}</div>`+
-    `<div style="margin-top:14px"><button id="go" onclick="run()">Dispatch agents</button></div></div>`+
+    `<div style="margin-top:14px"><button id="go" onclick="run()">Dispatch agents</button> <button id="cloud" onclick="runCloud()">Run in cloud (durable)</button></div></div>`+
     roles.map(r=>`<div class="agent" id="a-${r}"><div class="dot">🤖</div><div><div class="role">${r}</div><div class="content" id="c-${r}"></div></div></div>`).join("")+
     `<div class="loops" id="loops"></div><div class="badge" id="badge"></div>`;
 }
@@ -85,6 +85,16 @@ async function chat(){ if(!sel){alert("Pick a ticket first");return;} const q=do
   const r=await (await fetch("/api/chat?ticket="+encodeURIComponent(sel)+"&q="+encodeURIComponent(q))).json();
   document.getElementById('evbody').innerHTML+=`<div class="msg"><b>you</b>: ${esc(q)}</div><div class="msg">${esc(r.reply)}</div>`; document.getElementById('q').value=""; }
 function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+async function runCloud(){ if(!sel) return; renderDetail(tk(sel)); document.getElementById('cloud').disabled=true;
+  const ev=document.getElementById('evbody'); ev.innerHTML="Queued in Durable Functions…"; const loops=document.getElementById('loops');
+  const s=await (await fetch("/api/start?ticket="+encodeURIComponent(sel))).json(); const url=s.statusQueryGetUri;
+  const poll=async()=>{ const r=await (await fetch("/api/status?url="+encodeURIComponent(url))).json();
+    (r.customStatus||[]).forEach(m=>{ const a=document.getElementById("a-"+m.role); if(a){a.classList.add("active","done");} const c=document.getElementById("c-"+m.role); if(c)c.textContent=m.content; if(m.loop)loops.textContent="Loop "+m.loop;
+      let h=""; if(m.diff)h+='<h3>Diff</h3><pre>'+esc(m.diff)+'</pre>'; if(m.output)h+='<h3>pytest</h3><pre>'+esc(m.output)+'</pre>'; if(h)ev.innerHTML=h; });
+    if(r.runtimeStatus==="Completed"||r.runtimeStatus==="Failed"){ const b=document.getElementById("badge"); const ok=r.output&&r.output.passed; b.textContent=(ok?"✅ shipped":"❌ failed")+" ("+r.runtimeStatus+")"; b.className="badge "+(ok?"pass":"fail"); document.getElementById('cloud').disabled=false; return; }
+    setTimeout(poll,1500); };
+  poll();
+}
 load();
 </script>
 </body>

@@ -20,6 +20,9 @@ TICKETS = [
         ),
         "file": "order_service.py",
         "ask": "Discount rounding is wrong: 99.99 at 10% should be 89.99, not 89.00.",
+        "probe": "/price?amount=99.99&pct=0.10",
+        "probe_field": "charged",
+        "expected": 89.99,
         "activity": [
             {"who": "Maria (L1 Support)", "at": "08:16", "note": "Caller confirms charged 89.00. Repro on 3 accounts. Bumping to P1."},
             {"who": "System", "at": "08:17", "note": "Linked CHG0008812 (pricing v3.2). Possible regression."},
@@ -39,6 +42,9 @@ TICKETS = [
         ),
         "file": "tax_service.py",
         "ask": "Sales tax should round to cents: 19.99 at 0.0875 should be 21.74.",
+        "probe": "/tax?amount=19.99&rate=0.0875",
+        "probe_field": "total",
+        "expected": 21.74,
         "activity": [
             {"who": "Sam (Finance)", "at": "09:05", "note": "Pennies short across all invoices today. Audit flagged 312 docs."},
             {"who": "Dev (L2)", "at": "09:20", "note": "total_with_tax floors instead of rounding. Same pattern as INC0012345."},
@@ -57,6 +63,9 @@ TICKETS = [
         ),
         "file": "loyalty_service.py",
         "ask": "Loyalty points should be earned on gross price before discount, 1 point per dollar.",
+        "probe": "/loyalty?gross=100&pct=0.10",
+        "probe_field": "points",
+        "expected": 100,
         "activity": [
             {"who": "Priya (Loyalty)", "at": "10:42", "note": "Member escalation: 90 pts instead of 100 on a $100 order."},
             {"who": "Dev (L2)", "at": "10:55", "note": "points_earned multiplies by (1-discount). Should use gross."},

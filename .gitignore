@@ -7,3 +7,6 @@ node_modules/
 dist/
 .env
 *.egg-info/
+durable/backend/
+durable/demo_repo/
+durable/local.settings.json

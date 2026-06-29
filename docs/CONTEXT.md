@@ -51,3 +51,11 @@ _Avoid_: Runner, executor
 **AG-UI**:
 The open agent↔UI event protocol that carries every War Room run to the frontend, driving both timeline and chat from one stream.
 _Avoid_: SSE schema, custom protocol
+
+**shop-api**:
+The live problematic application deployed as its own Container App; agents reproduce the defect over HTTP and redeploy it once green.
+_Avoid_: Demo repo (that is the source), backend
+
+**Durable Run**:
+An asynchronous War Room executed by Azure Durable Functions; the orchestrator persists step state and the UI polls a status endpoint.
+_Avoid_: Background job, async task

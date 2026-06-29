@@ -6,8 +6,10 @@ trigger:
 variables:
   acr: warroomacryus4r3t5b66pu
   image: harness-war-room
+  shopImage: shop-api
   rg: rg-harness-war-room
   app: warroom
+  shop: warroom-shop
   azureSubscription: warroom-azure
 
 stages:
@@ -34,6 +36,7 @@ stages:
               scriptLocation: inlineScript
               inlineScript: |
                 az acr build --registry $(acr) --image $(image):$(Build.BuildId) .
+                az acr build --registry $(acr) --image $(shopImage):$(Build.BuildId) -f shop-api/Dockerfile .
 
   - stage: Deploy
     dependsOn: BuildPush
@@ -49,3 +52,5 @@ stages:
               inlineScript: |
                 az containerapp update -n $(app) -g $(rg) \
                   --image $(acr).azurecr.io/$(image):$(Build.BuildId)
+                az containerapp update -n $(shop) -g $(rg) \
+                  --image $(acr).azurecr.io/$(shopImage):$(Build.BuildId)

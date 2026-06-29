@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -42,6 +43,19 @@ def tickets():
 @app.get("/api/chat")
 def ticket_chat(ticket: str = "", q: str = ""):
     return {"reply": chat(ticket, q)}
+
+
+@app.get("/api/start")
+def start(ticket: str = ""):
+    base = os.environ.get("DURABLE_BASE_URL", "").rstrip("/")
+    r = httpx.get(f"{base}/api/start", params={"ticket": ticket}, timeout=30)
+    return r.json()
+
+
+@app.get("/api/status")
+def status(url: str = ""):
+    r = httpx.get(url, timeout=30)
+    return r.json()
 
 
 @app.get("/api/run")
