@@ -1,0 +1,8 @@
+[project]
+name = "harness-war-room"
+version = "0.1.0"
+description = "Multi-agent war room that fixes code via Triage/Repro/Fix/Review"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["demo_repo", "backend"]

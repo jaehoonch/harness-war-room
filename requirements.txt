@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn>=0.29
+pytest>=8.0
+ag-ui-protocol>=0.1
+agent-framework>=0.1
+openai>=1.40
+opentelemetry-sdk>=1.25
