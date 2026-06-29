@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from agui import to_agui
-from tickets import TICKETS, get_ticket
+from tickets import TICKETS, chat, get_ticket
 
 DEMO = Path(__file__).resolve().parents[1] / "demo_repo"
 FRONTEND = Path(__file__).resolve().parents[1] / "frontend"
@@ -37,6 +37,11 @@ def _internal_events(ask, ticket=None):
 @app.get("/api/tickets")
 def tickets():
     return TICKETS
+
+
+@app.get("/api/chat")
+def ticket_chat(ticket: str = "", q: str = ""):
+    return {"reply": chat(ticket, q)}
 
 
 @app.get("/api/run")

@@ -21,6 +21,10 @@
   .p1{color:#ff6b6b} .p2{color:#ffb454} .p3{color:#3ddc84}
   /* room */
   .room { padding:22px; overflow:auto; }
+  .detail { margin:0 0 18px; padding:14px 16px; background:#11141c; border:1px solid #1d2230; border-radius:10px; }
+  .detail .num{color:#7aa2ff;font-weight:700} .detail p{color:#c2c8d4;margin:8px 0}
+  .act{border-left:2px solid #1d2230;margin:10px 0 0;padding:2px 0 2px 12px}
+  .act .a{margin:8px 0;font-size:13px} .act .a b{color:#7aa2ff} .act .a .t{color:#6b7385;margin-left:6px}
   .agent { display:flex; gap:14px; margin:12px 0; opacity:.3; transition:.3s; }
   .agent.active { opacity:1; }
   .dot { width:32px; height:32px; border-radius:50%; background:#1d2230; display:grid; place-items:center; flex:none; }
@@ -30,13 +34,15 @@
   .loops { font-size:12px; color:#9aa3b4; margin:8px 0 0; }
   .badge { margin-top:18px; font-weight:700; font-size:16px; }
   .pass { color:#3ddc84; } .fail { color:#ff6b6b; }
-  /* evidence */
+  /* evidence + chat */
   aside { border-left:1px solid #1d2230; display:flex; flex-direction:column; min-width:0; }
   .ev { padding:14px 16px; overflow:auto; flex:1; }
   .ev h3 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#9aa3b4; margin:14px 0 6px; }
   pre { margin:0; padding:10px; background:#11141c; border:1px solid #1d2230; border-radius:8px; white-space:pre-wrap; font:12px/1.5 ui-monospace,monospace; }
   .diff .add{color:#3ddc84} .diff .del{color:#ff6b6b}
+  .msg{margin:8px 0} .msg b{color:#5b8cff}
   .bar { display:flex; padding:12px; border-top:1px solid #1d2230; gap:8px; }
+  input { flex:1; padding:10px; background:#11141c; border:1px solid #1d2230; color:#fff; border-radius:8px; }
   button { padding:10px 16px; background:#5b8cff; border:0; color:#fff; border-radius:8px; cursor:pointer; }
   button:disabled{opacity:.5;cursor:default}
 </style>
@@ -45,30 +51,40 @@
 <header><h1>⚡ Harness War Room</h1><span class="tag">ServiceNow → 4 agents → green tests → ship</span></header>
 <div class="grid">
   <section class="queue"><div class="qhead">ServiceNow · Incident queue</div><div id="queue"></div></section>
-  <section class="room" id="room"></section>
-  <aside><div class="ev" id="ev"><h3>Evidence</h3><div id="evbody" style="color:#9aa3b4">Pick a ticket to dispatch the agents.</div></div>
-    <div class="bar"><button id="go" onclick="run()" disabled>Dispatch agents</button></div></aside>
+  <section class="room" id="room"><div style="color:#9aa3b4">Pick an incident to view details and dispatch the agents.</div></section>
+  <aside><div class="ev" id="ev"><h3>RCA chat</h3><div id="evbody" style="color:#9aa3b4">Run a ticket, then ask about the root cause.</div></div>
+    <div class="bar"><input id="q" placeholder="Ask about this ticket / RCA…" /><button id="ask" onclick="chat()">Ask</button></div></aside>
 </div>
 <script>
 const roles = ["triage","repro","fix","review"];
 const room = document.getElementById("room");
 let sel = null, tickets = [];
-function renderRoom(){ room.innerHTML = roles.map(r=>`<div class="agent" id="a-${r}"><div class="dot">🤖</div><div><div class="role">${r}</div><div class="content" id="c-${r}"></div></div></div>`).join("") + `<div class="loops" id="loops"></div><div class="badge" id="badge"></div>`; }
-renderRoom();
+function tk(n){ return tickets.find(t=>t.number===n); }
 async function load(){ tickets = await (await fetch("/api/tickets")).json();
   document.getElementById("queue").innerHTML = tickets.map(t=>{const p=t.priority[0];return `<div class="tk" id="t-${t.number}" onclick="pick('${t.number}')"><div class="num">${t.number}</div><div class="sd">${t.short_description}</div><div class="meta p${p}">${t.priority} · ${t.caller}</div></div>`;}).join(""); }
-function pick(n){ sel=n; document.querySelectorAll('.tk').forEach(e=>e.classList.remove('sel')); document.getElementById('t-'+n).classList.add('sel'); document.getElementById('go').disabled=false; renderRoom(); document.getElementById('evbody').innerHTML='Ready: '+n; }
-function run(){ if(!sel) return; renderRoom(); document.getElementById('go').disabled=true;
-  const ev=document.getElementById('evbody'), loops=document.getElementById('loops'); let n=0;
+function pick(n){ sel=n; document.querySelectorAll('.tk').forEach(e=>e.classList.remove('sel')); document.getElementById('t-'+n).classList.add('sel'); renderDetail(tk(n)); }
+function renderDetail(t){
+  const acts = t.activity.map(a=>`<div class="a"><b>${a.who}</b><span class="t">${a.at}</span><br>${esc(a.note)}</div>`).join("");
+  room.innerHTML = `<div class="detail"><div class="num">${t.number} · ${t.priority}</div><p><b>${esc(t.short_description)}</b></p><p>${esc(t.description)}</p>`+
+    `<div class="meta">${t.assignment_group} · opened ${t.opened} · ${t.file}</div><h3 style="font-size:12px;color:#9aa3b4;margin:14px 0 4px">Activity</h3><div class="act">${acts}</div>`+
+    `<div style="margin-top:14px"><button id="go" onclick="run()">Dispatch agents</button></div></div>`+
+    roles.map(r=>`<div class="agent" id="a-${r}"><div class="dot">🤖</div><div><div class="role">${r}</div><div class="content" id="c-${r}"></div></div></div>`).join("")+
+    `<div class="loops" id="loops"></div><div class="badge" id="badge"></div>`;
+}
+function run(){ if(!sel) return; renderDetail(tk(sel)); document.getElementById('go').disabled=true;
+  const ev=document.getElementById('evbody'), loops=document.getElementById('loops'); ev.innerHTML="";
   const es=new EventSource("/api/run?ticket="+encodeURIComponent(sel));
   es.onmessage=e=>{ const m=JSON.parse(e.data);
     if(m.type==="TEXT_MESSAGE"){ const a=document.getElementById("a-"+m.role); if(a){a.classList.add("active");a.classList.add("done");} const c=document.getElementById("c-"+m.role); if(c)c.textContent=m.content;
       if(m.loop) loops.textContent="Loop "+m.loop;
       let h=""; if(m.diff){h+='<h3>Diff</h3><pre class="diff">'+m.diff.split('\n').map(l=>l[0]==='+'?'<span class=add>'+esc(l)+'</span>':l[0]==='-'?'<span class=del>'+esc(l)+'</span>':esc(l)).join('\n')+'</pre>';} if(m.output){h+='<h3>pytest</h3><pre>'+esc(m.output)+'</pre>';} if(h)ev.innerHTML=h; }
-    if(m.type==="RUN_FINISHED"){ const b=document.getElementById("badge"); b.textContent=m.passed?"✅ "+m.content:"❌ "+m.content; b.className="badge "+(m.passed?"pass":"fail"); document.getElementById('go').disabled=false; es.close(); }
+    if(m.type==="RUN_FINISHED"){ const b=document.getElementById("badge"); b.textContent=m.passed?"✅ "+m.content:"❌ "+m.content; b.className="badge "+(m.passed?"pass":"fail"); const g=document.getElementById('go'); if(g)g.disabled=false; es.close(); }
   };
 }
-function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+async function chat(){ if(!sel){alert("Pick a ticket first");return;} const q=document.getElementById('q').value||"What was the root cause?";
+  const r=await (await fetch("/api/chat?ticket="+encodeURIComponent(sel)+"&q="+encodeURIComponent(q))).json();
+  document.getElementById('evbody').innerHTML+=`<div class="msg"><b>you</b>: ${esc(q)}</div><div class="msg">${esc(r.reply)}</div>`; document.getElementById('q').value=""; }
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 load();
 </script>
 </body>
